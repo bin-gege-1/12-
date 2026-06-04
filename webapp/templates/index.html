@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>脑退行性疾病知识库</title>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<style>
+  :root {
+    --bg: #f5f6fa;
+    --surface: #ffffff;
+    --primary: #1a6b7a;
+    --primary-light: #e8f4f6;
+    --accent: #2d9da8;
+    --text: #2c3e50;
+    --text-secondary: #6b7c93;
+    --border: #e2e8f0;
+    --user-bubble: #1a6b7a;
+    --bot-bubble: #ffffff;
+    --shadow: 0 2px 12px rgba(0,0,0,0.06);
+    --radius: 12px;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    color: var(--text);
+  }
+
+  /* ── Header ── */
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 14px 24px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    box-shadow: var(--shadow);
+    z-index: 10;
+  }
+  header .logo {
+    width: 38px; height: 38px;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+  }
+  header h1 {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary);
+  }
+  header .subtitle {
+    font-size: 12px;
+    color: var(--text-secondary);
+    margin-left: 4px;
+  }
+
+  /* ── Main layout ── */
+  .main-container {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── Sidebar ── */
+  .sidebar {
+    width: 260px;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 16px;
+    overflow-y: auto;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .sidebar h3 {
+    font-size: 13px;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 4px;
+    padding: 0 8px;
+  }
+  .sidebar .disease-item {
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    transition: background 0.15s;
+    color: var(--text);
+  }
+  .sidebar .disease-item:hover {
+    background: var(--primary-light);
+  }
+  .sidebar .disease-item .alias {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-left: 4px;
+  }
+  .sidebar .disease-item .protein {
+    font-size: 10px;
+    color: var(--accent);
+    display: block;
+    margin-top: 2px;
+  }
+  .sidebar .tip {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: auto;
+    padding: 12px 8px;
+    line-height: 1.6;
+    border-top: 1px solid var(--border);
+  }
+
+  /* ── Chat area ── */
+  .chat-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    max-width: 860px;
+    margin: 0 auto;
+    width: 100%;
+  }
+
+  .messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  /* Welcome card */
+  .welcome-card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    padding: 28px 32px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    margin: auto;
+    max-width: 480px;
+  }
+  .welcome-card .icon {
+    font-size: 48px;
+    margin-bottom: 12px;
+  }
+  .welcome-card h2 {
+    font-size: 20px;
+    color: var(--primary);
+    margin-bottom: 8px;
+  }
+  .welcome-card p {
+    font-size: 14px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+    margin-bottom: 6px;
+  }
+  .welcome-card .examples {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 16px;
+  }
+  .welcome-card .example-btn {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    background: var(--surface);
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--primary);
+    transition: all 0.15s;
+  }
+  .welcome-card .example-btn:hover {
+    background: var(--primary-light);
+    border-color: var(--accent);
+  }
+
+  /* Message bubbles */
+  .message {
+    display: flex;
+    gap: 10px;
+    animation: fadeIn 0.25s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+  .message.user {
+    flex-direction: row-reverse;
+  }
+  .message .avatar {
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+  .message.user .avatar { background: var(--primary); }
+  .message.bot .avatar  { background: var(--primary-light); }
+
+  .message .bubble {
+    max-width: 75%;
+    padding: 12px 16px;
+    border-radius: var(--radius);
+    font-size: 14px;
+    line-height: 1.7;
+    box-shadow: var(--shadow);
+  }
+  .message.user .bubble {
+    background: var(--user-bubble);
+    color: #fff;
+    border-bottom-right-radius: 4px;
+  }
+  .message.bot .bubble {
+    background: var(--bot-bubble);
+    border: 1px solid var(--border);
+    border-bottom-left-radius: 4px;
+  }
+
+  /* Markdown inside bot bubble */
+  .message.bot .bubble h2 { font-size: 16px; margin: 12px 0 6px; color: var(--primary); }
+  .message.bot .bubble h3 { font-size: 14px; margin: 10px 0 4px; color: var(--text); }
+  .message.bot .bubble p  { margin: 4px 0; }
+  .message.bot .bubble ul, .message.bot .bubble ol { padding-left: 20px; margin: 4px 0; }
+  .message.bot .bubble li { margin: 2px 0; }
+  .message.bot .bubble table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
+  .message.bot .bubble th, .message.bot .bubble td { border: 1px solid var(--border); padding: 6px 10px; text-align: left; }
+  .message.bot .bubble th { background: var(--primary-light); font-weight: 600; }
+  .message.bot .bubble strong { color: var(--primary); }
+  .message.bot .bubble code { background: var(--bg); padding: 2px 6px; border-radius: 4px; font-size: 13px; }
+  .message.bot .bubble em { color: var(--text-secondary); }
+  .message.bot .bubble hr { border: none; border-top: 1px solid var(--border); margin: 12px 0; }
+
+  /* Loading dots */
+  .typing-indicator {
+    display: flex; gap: 4px; padding: 4px 0;
+  }
+  .typing-indicator span {
+    width: 7px; height: 7px;
+    background: var(--text-secondary);
+    border-radius: 50%;
+    animation: bounce 1.4s infinite ease-in-out both;
+  }
+  .typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+  .typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+  @keyframes bounce {
+    0%, 80%, 100% { transform: scale(0); }
+    40% { transform: scale(1); }
+  }
+
+  /* ── Input area ── */
+  .input-area {
+    padding: 14px 24px 20px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+  }
+  .input-wrapper {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+    max-width: 800px;
+    margin: 0 auto;
+    background: var(--bg);
+    border-radius: var(--radius);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    transition: border-color 0.2s;
+  }
+  .input-wrapper:focus-within {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(45, 157, 168, 0.12);
+  }
+  .input-wrapper textarea {
+    flex: 1;
+    border: none;
+    background: transparent;
+    resize: none;
+    font-size: 14px;
+    font-family: inherit;
+    color: var(--text);
+    outline: none;
+    padding: 4px 0;
+    min-height: 24px;
+    max-height: 120px;
+    line-height: 1.5;
+  }
+  .input-wrapper textarea::placeholder { color: #b0bec5; }
+  .input-wrapper button {
+    width: 38px; height: 38px;
+    border: none;
+    background: var(--primary);
+    color: #fff;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 18px;
+    flex-shrink: 0;
+    transition: background 0.15s, transform 0.1s;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .input-wrapper button:hover { background: var(--accent); }
+  .input-wrapper button:active { transform: scale(0.95); }
+  .input-wrapper button:disabled { background: #b0bec5; cursor: not-allowed; }
+
+  .input-hint {
+    font-size: 11px;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-top: 6px;
+  }
+
+  /* ── Scrollbar ── */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: #c8d6e5; border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: #a0b4c8; }
+
+  /* ── Responsive ── */
+  @media (max-width: 768px) {
+    .sidebar { display: none; }
+    .message .bubble { max-width: 88%; }
+    .chat-container { max-width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🧠</div>
+  <h1>脑退行性疾病知识库</h1>
+  <span class="subtitle">Neurodegenerative Diseases KB</span>
+</header>
+
+<div class="main-container">
+  <!-- Sidebar: disease list -->
+  <aside class="sidebar">
+    <h3>📋 疾病目录</h3>
+    <div id="disease-list">
+      <div class="disease-item" style="color:var(--text-secondary);font-size:12px;">加载中...</div>
+    </div>
+    <div class="tip">
+      💡 <b>使用提示</b><br>
+      在输入框提问，AI 将基于知识库内容回答。支持中文和英文术语。
+    </div>
+  </aside>
+
+  <!-- Chat area -->
+  <div class="chat-container">
+    <div class="messages" id="messages">
+      <div class="welcome-card" id="welcome">
+        <div class="icon">🧬</div>
+        <h2>欢迎查询脑退行性疾病知识库</h2>
+        <p>
+          本知识库覆盖 <b>12 种</b>主要脑退行性疾病，<br>
+          包含病理机制、诊断方法和治疗策略。
+        </p>
+        <p>直接提问即可获得基于知识库的智能回答：</p>
+        <div class="examples">
+          <button class="example-btn" onclick="askExample('阿尔茨海默病有什么典型症状？')">🧠 阿尔茨海默病症状</button>
+          <button class="example-btn" onclick="askExample('tau蛋白在哪些疾病中出现？')">🔬 tau蛋白相关疾病</button>
+          <button class="example-btn" onclick="askExample('帕金森病如何治疗？')">💊 帕金森病治疗</button>
+          <button class="example-btn" onclick="askExample('AD和DLB怎么鉴别？')">🩺 AD vs DLB</button>
+          <button class="example-btn" onclick="askExample('有哪些常见的生物标志物？')">🧪 生物标志物</button>
+          <button class="example-btn" onclick="askExample('什么是神经退行性疾病的共同病理机制？')">📖 共同病理机制</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="input-area">
+      <div class="input-wrapper">
+        <textarea
+          id="questionInput"
+          rows="1"
+          placeholder="输入你的问题，例如：阿尔茨海默病的病理特征是什么？"
+          onkeydown="handleKeyDown(event)"
+          oninput="autoResize(this)"
+        ></textarea>
+        <button id="sendBtn" onclick="sendMessage()" title="发送">➤</button>
+      </div>
+      <div class="input-hint">Enter 发送 · Shift+Enter 换行 · 回答基于知识库内容生成</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Config ──
+const API_BASE = '';
+
+// ── State ──
+let isLoading = false;
+
+// ── Init ──
+document.addEventListener('DOMContentLoaded', () => {
+  loadDiseaseList();
+  document.getElementById('questionInput').focus();
+});
+
+// ── Load sidebar disease list ──
+async function loadDiseaseList() {
+  try {
+    const res = await fetch(`${API_BASE}/api/diseases`);
+    const data = await res.json();
+    const list = document.getElementById('disease-list');
+    list.innerHTML = data.diseases.map(d => `
+      <div class="disease-item" onclick="askExample('${escapeHtml(d.title)}的临床表现和诊断方法是什么？')" title="点击查询">
+        ${d.title}
+        <span class="alias">${(d.aliases||[]).slice(0,3).join(' · ')}</span>
+        ${d.core_protein?.length ? `<span class="protein">🧬 ${d.core_protein.join(', ')}</span>` : ''}
+      </div>
+    `).join('');
+  } catch (e) {
+    document.getElementById('disease-list').innerHTML =
+      '<div class="disease-item" style="color:var(--text-secondary);font-size:12px;">加载失败</div>';
+  }
+}
+
+// ── Auto-resize textarea ──
+function autoResize(el) {
+  el.style.height = 'auto';
+  el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+}
+
+// ── Keyboard handler ──
+function handleKeyDown(e) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault();
+    sendMessage();
+  }
+}
+
+// ── Example click ──
+function askExample(question) {
+  document.getElementById('questionInput').value = question;
+  sendMessage();
+}
+
+// ── Send message ──
+async function sendMessage() {
+  if (isLoading) return;
+
+  const input = document.getElementById('questionInput');
+  const question = input.value.trim();
+  if (!question) return;
+
+  // Clear input
+  input.value = '';
+  input.style.height = 'auto';
+
+  // Remove welcome card
+  const welcome = document.getElementById('welcome');
+  if (welcome) welcome.remove();
+
+  // Add user message
+  addMessage('user', question);
+
+  // Add bot placeholder with loading
+  const botMsg = addMessage('bot', '<div class="typing-indicator"><span></span><span></span><span></span></div>', true);
+  scrollToBottom();
+
+  isLoading = true;
+  document.getElementById('sendBtn').disabled = true;
+
+  try {
+    const response = await fetch(`${API_BASE}/api/chat`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question }),
+    });
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    let answerText = '';
+    let bubbleEl = botMsg.querySelector('.bubble');
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      buffer += decoder.decode(value, { stream: true });
+      const lines = buffer.split('\n');
+      buffer = lines.pop(); // keep incomplete line in buffer
+
+      for (const line of lines) {
+        if (!line.startsWith('data: ')) continue;
+        const data = JSON.parse(line.slice(6));
+
+        if (data.error) {
+          bubbleEl.innerHTML = `<span style="color:#e74c3c;">❌ 错误: ${escapeHtml(data.error)}</span>`;
+          break;
+        }
+        if (data.done) break;
+        if (data.text) {
+          answerText += data.text;
+          bubbleEl.innerHTML = marked.parse(answerText);
+          scrollToBottom();
+        }
+      }
+    }
+
+    // If empty response
+    if (!answerText) {
+      bubbleEl.innerHTML = '抱歉，未能获取到回答。请稍后重试。';
+    }
+
+  } catch (e) {
+    botMsg.querySelector('.bubble').innerHTML =
+      `<span style="color:#e74c3c;">❌ 请求失败: ${escapeHtml(e.message)}</span>`;
+  } finally {
+    isLoading = false;
+    document.getElementById('sendBtn').disabled = false;
+    document.getElementById('questionInput').focus();
+    scrollToBottom();
+  }
+}
+
+// ── Add message to chat ──
+function addMessage(role, content, isTemp = false) {
+  const messages = document.getElementById('messages');
+  const div = document.createElement('div');
+  div.className = `message ${role}`;
+
+  const avatarIcon = role === 'user' ? '👤' : '🤖';
+
+  div.innerHTML = `
+    <div class="avatar">${avatarIcon}</div>
+    <div class="bubble">${content}</div>
+  `;
+
+  messages.appendChild(div);
+  scrollToBottom();
+  return div;
+}
+
+// ── Scroll to bottom ──
+function scrollToBottom() {
+  const container = document.querySelector('.messages');
+  requestAnimationFrame(() => {
+    container.scrollTop = container.scrollHeight;
+  });
+}
+
+// ── Escape HTML ──
+function escapeHtml(str) {
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+</script>
+
+</body>
+</html>
