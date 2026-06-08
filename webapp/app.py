@@ -228,10 +228,8 @@ def api_chat():
             )
 
             for event in stream:
-                if event.type == "content_block_delta":
-                    delta = event.delta
-                    if hasattr(delta, "text"):
-                        yield f"data: {json.dumps({'text': delta.text})}\n\n"
+                if event.type == "content_block_delta" and event.delta.type == "text_delta":
+                    yield f"data: {json.dumps({'text': event.delta.text})}\n\n"
 
             # Signal completion
             yield f"data: {json.dumps({'done': True})}\n\n"
@@ -247,6 +245,47 @@ def api_chat():
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@app.route("/api/chat/sync", methods=["POST"])
+def api_chat_sync():
+    """Non-streaming chat endpoint — works through any proxy/tunnel."""
+    data = request.get_json()
+    question = data.get("question", "").strip()
+    if not question:
+        return jsonify({"error": "问题不能为空"}), 400
+
+    # Retrieve relevant documents
+    docs = search(question, top_n=5)
+    if not docs:
+        docs = [d for d in DOCUMENTS if d["filename"] in ("glossary.md", "README.md")]
+
+    context = build_context(docs)
+
+    try:
+        message = CLIENT.messages.create(
+            model=MODEL,
+            max_tokens=2048,
+            system=SYSTEM_PROMPT,
+            messages=[
+                {
+                    "role": "user",
+                    "content": f"<参考资料>\n{context}\n</参考资料>\n\n用户问题: {question}\n\n请基于参考资料回答。",
+                }
+            ],
+            stream=False,
+        )
+
+        # Handle both TextBlock and ThinkingBlock from API
+        text_blocks = [b for b in message.content if b.type == "text"]
+        answer = text_blocks[0].text if text_blocks else "未能获取回答。"
+        return jsonify({
+            "answer": answer,
+            "sources": [{"title": d["title"], "path": d["path"]} for d in docs],
+        })
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 @app.route("/api/diseases", methods=["GET"])
